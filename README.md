@@ -16,3 +16,6 @@ The images used for this task is from EPFL [RGBNIR dataset](https://ivrl.epfl.ch
 * Matplotlab
 * numpy
 
+# Issues
+* Memory ram leak in every interaction, it restarts with new epoch.
+

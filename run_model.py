@@ -114,11 +114,9 @@ class run_gan():
         # Training
         train_list = data_cache['train_paths']
         train_list = np.array(train_list)
-        # train_data = tf.data.TextLineDataset(train_list)
         train_data = tf.data.Dataset.from_tensor_slices((train_list[:,0],train_list[:,1]))
         train_data = train_data.shuffle(BUFFER_SIZE)
         train_data = train_data.map(self.load_train_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        # train_data = train_data.map(lambda x,y:self.load_train_img((x,y),is_train=True)) #
         train_data = train_data.batch(self.bs)
         train_data = train_data.prefetch(1)
         # Validation
@@ -133,7 +131,7 @@ class run_gan():
         D = Discriminator()  # Discriminator initialization
 
         # set and define optimizers
-        G_optimizer = tf.train.AdamOptimizer(learning_rate=2e-4, beta1=0.5)
+        G_optimizer = tf.train.AdamOptimizer(learning_rate=self.args.lr, beta1=self.args.beta1)
         D_optimizer = tf.train.AdamOptimizer(learning_rate=2e-4, beta1=0.5)
         # check previous training
         checkpoint_dir = join(self.args.checkpoint_dir,
@@ -142,6 +140,14 @@ class run_gan():
         _ = make_dirs(checkpoint_dir)
         checkpoint = tf.train.Checkpoint(G_optimizer=G_optimizer, D_optimizer=D_optimizer,
                                          G=G, D=D)
+        # create summary
+        train_log_dir = join('logs', self.args.model_name.lower() +
+                                  '_' + self.args.dataset4training.lower(), self.args.model_state)
+        val_log_dir = join('logs', self.args.model_name.lower() +
+                                '_' + self.args.dataset4training.lower(), 'val')
+        self.train_writer = tf.contrib.summary.create_file_writer(train_log_dir,flush_mills=10)
+
+        # start training
         plt.figure(figsize=(10,5))
         for epoch in range(self.epochs):
             start_time = time.time()
@@ -162,7 +168,7 @@ class run_gan():
                 G_optimizer.apply_gradients((zip(g_grads,G.variables)))
                 D_optimizer.apply_gradients((zip(d_grads,D.variables)))
 
-                if iter%10==0:
+                if iter%self.args.display_freq==0:
                     #validation and visualization
                     self.visualize(input_img,target,g_output,d_gen_output)
 
@@ -171,7 +177,7 @@ class run_gan():
 
             for inp, tar in val_data.take(1):
                 self.generate_images(G, inp, tar)
-            if epoch % 250 == 0:
+            if epoch % self.args.save_freq == 0:
                 # saving checkpoint in every 20 epoch
                 checkpoint.save(file_prefix=checkpoint_dir)
 
