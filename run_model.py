@@ -75,7 +75,8 @@ class run_gan():
         return input_img, real_img
 
     def generate_images(self, model,test_input, tar,fig=None):
-        pred = model(test_input,training=True)
+        with self.val_writer.as_defaul():
+            pred = model(test_input,training=True)
 
         display_list = [test_input[0],tar[0],pred[0]]
         title=['Input image', 'Grount truth', 'Predicted Image']
@@ -145,8 +146,8 @@ class run_gan():
                                   '_' + self.args.dataset4training.lower(), self.args.model_state)
         val_log_dir = join('logs', self.args.model_name.lower() +
                                 '_' + self.args.dataset4training.lower(), 'val')
-        self.train_writer = tf.contrib.summary.create_file_writer(train_log_dir,flush_mills=10)
-
+        self.train_writer = tf.contrib.summary.create_file_writer(train_log_dir,flush_millis=10)
+        self.val_writer = tf.contrib.summary.create_file_writer(val_log_dir, flush_millis=10)
         # start training
         plt.figure(figsize=(10,5))
         for epoch in range(self.epochs):
@@ -154,9 +155,12 @@ class run_gan():
             iter = 0
             for input_img, target in train_data:
                 with tf.GradientTape() as G_tape, tf.GradientTape() as D_tape:
-                    g_output = G(inputs=input_img,training=True)
-                    d_real_output = D(inputs=[input_img,target],training=True)
-                    d_gen_output = D(inputs=[input_img,g_output],training=True)
+
+                    with self.train_writer.as_defaul():
+
+                        g_output = G(inputs=input_img,training=True)
+                        d_real_output = D(inputs=[input_img,target],training=True)
+                        d_gen_output = D(inputs=[input_img,g_output],training=True)
 
                     g_loss= G_loss(disc_generated_output=d_gen_output,gen_output=g_output,
                                               target=target)
