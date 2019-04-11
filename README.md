@@ -13,7 +13,7 @@ The images used for this task is from EPFL [RGBNIR dataset](https://ivrl.epfl.ch
 
 * Python 3.7
 * Tensorflow 1.13.1
-* Matplotlab
+* Matplotlib
 * numpy
 
 # Issues

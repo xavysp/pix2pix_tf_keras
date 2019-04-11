@@ -190,25 +190,81 @@ class run_gan():
                   'g_loss {}, d_loss {}'.format(g_loss,d_loss))
 
     def test(self):
-        # test dataset generation
-        data_cache =  data_parser(dataset_dir=self.args.data_base_dir,dataset_name=self.args.data4test,
-                                 list_name=self.args.test_list,is_train=False)
-        data_list = data_cache['files_path']
-        test_data = tf.data.Dataset.list_files(data_list)
-        test_data = test_data.shuffle(BUFFER_SIZE)
-        test_data = test_data.map(self.load_test_img)
-        test_data = test_data.batch(self.bs)
-        # call models
-        # self.model = define_model(args=self.args)
-        G = Generator() # Generator initialization
-        D = Discriminator() # Discriminator initialization
+        def test(self):
+            # test dataset generation
+            data_cache = data_parser(dataset_dir=self.args.data_base_dir, dataset_name=self.args.data4test,
+                                     list_name=self.args.test_list, is_train=False)
+            self.data_shape = data_cache["data_shape"]
+            test_list = data_cache['files_path']
+            test_list = np.array(test_list)
+            test_data = tf.data.Dataset.from_tensor_slices((test_list[:, 0], test_list[:, 1]))
+            test_data = test_data.map(self.load_test_img)
+            test_data = test_data.batch(self.bs)
+            # test_data = test_data.prefetch(1)
+            # call models
+            # self.model = define_model(args=self.args)
+            G = Generator()  # Generator initialization
+            D = Discriminator()  # Discriminator initialization
 
-        #set and define optimizers
-        G_optimizer = tf.train.AdamOptimizer(learning_rate=2e-4,beta1=0.5)
-        D_optimizer = tf.train.AdamOptimizer(learning_rate=2e-4,beta1=0.5)
-        # check previous training
-        checkpoint_dir = join(self.args.checkpoint_dir,
-                                      join(self.args.model_name + '_' + self.args.data4train,
-                                                   self.args.model_state))
-        checkpoint = tf.train.Checkpoint(G_optimizer=G_optimizer,D_optimizer=D_optimizer,
-                                         G=G,D=D)
+            # set and define optimizers
+            G_optimizer = tf.train.AdamOptimizer(learning_rate=2e-4, beta1=0.5)
+            D_optimizer = tf.train.AdamOptimizer(learning_rate=2e-4, beta1=0.5)
+            # check previous training
+            checkpoint_dir = join(self.args.checkpoint_dir,
+                                  join(self.args.model_name + '_' + self.args.data4train))
+            checkpoint = tf.train.Checkpoint(G_optimizer=G_optimizer, D_optimizer=D_optimizer,
+                                             G=G, D=D)
+            checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
+            img_name = []
+            psnr = []
+            ssim = []
+            # plt.figure(figsize=(10, 5))
+            base_save_dir = join(self.args.output_dir,
+                                 self.args.model_name + '_' + self.args.data4train + '2' + self.args.data4test)
+            input_dir = join(base_save_dir, 'input')
+            _ = make_dirs(input_dir)
+            target_dir = join(base_save_dir, 'target')
+            _ = make_dirs(target_dir)
+            pred_dir = join(base_save_dir, 'pred')
+            _ = make_dirs(pred_dir)
+            k = 1
+            for inp, tar in test_data:
+                pred = G(inp, training=False)
+                for i in range(len(pred)):
+                    pre_tmp = (pred[i] * 0.5 + 0.5) * 255
+                    tar_tmp = (tar[i] * 0.5 + 0.5) * 255
+                    inp_tmp = (inp[i] * 0.5 + 0.5) * 255
+
+                    pre_tmp = tf.squeeze(tf.image.resize_bilinear(tf.expand_dims(pre_tmp, axis=0),
+                                                                  [self.data_shape[1][0], self.data_shape[1][1]]))
+                    tar_tmp = tf.squeeze(tf.image.resize_bilinear(tf.expand_dims(tar_tmp, axis=0),
+                                                                  [self.data_shape[1][0], self.data_shape[1][1]]))
+                    inp_tmp = tf.squeeze(tf.image.resize_bilinear(tf.expand_dims(inp_tmp, axis=0),
+                                                                  [self.data_shape[0][0], self.data_shape[0][1]]))
+                    tmp_psnr = tf.image.psnr(pre_tmp, tar_tmp, max_val=255).numpy()
+                    psnr.append(tmp_psnr)
+                    tmp_ssim = tf.image.ssim(pre_tmp, tar_tmp, max_val=255).numpy()
+                    ssim.append(tmp_ssim)
+                    img_name.append(format(k, '03') + '.png')
+                    print(format(k, '03') + '.png ', tmp_psnr, tmp_ssim)
+
+                    inp_tmp = np.uint8(inp_tmp.numpy())
+                    tar_tmp = np.uint8(tar_tmp.numpy())
+                    pre_tmp = np.uint8(pre_tmp.numpy())
+
+                    cv.imwrite(join(input_dir, format(k, '03') + '.jpg'), inp_tmp[:, :, [2, 1, 0]])
+                    cv.imwrite(join(target_dir, format(k, '03') + '.png'), tar_tmp[:, :, [2, 1, 0]])
+                    cv.imwrite(join(pred_dir, format(k, '03') + '.png'), pre_tmp[:, :, [2, 1, 0]])
+
+                    k += 1
+            all_res = [img_name, psnr, ssim]
+            np_all_res = np.transpose(np.array(all_res))
+            res_log = 'psnr: ' + str(np.mean(np.array(psnr))) + ' ssim: ' + str(
+                np.mean(np.array(ssim))) + ' of {} images '.format(
+                len(psnr)) + 'in ' + self.args.data4test + ' Dataset'
+            print(res_log)
+            with open(join(base_save_dir, 'quantitative_resume.txt'), 'w') as res:
+                res.write(res_log)
+            np.save(join(base_save_dir, 'quantitative_all'), np_all_res)
+
+            print('========== Testing finished ============')
