@@ -1,4 +1,4 @@
-# pix2pix with tf.keras (tf.enable_eager_execution())
+# pix2pix with tf.keras -->tf.enable_eager_execution()
 Pix2pix model for decolorization RGB2NIR
 This repo is a reimplementation of [iPython version](https://github.com/tensorflow/tensorflow/blob/r1.13/tensorflow/contrib/eager/python/examples/pix2pix/pix2pix_eager.ipynb) of pix2pix. In other words, is a copy with just a few modifications ;)
 
