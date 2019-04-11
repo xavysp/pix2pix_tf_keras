@@ -22,7 +22,7 @@ parser.add_argument("--model_state",default='train', choices=["train", "test", "
 parser.add_argument("--output_dir", default='/opt/results/rgb2nir', help="where to put output files")
 parser.add_argument("--checkpoint_dir", default='checkpoints', help="directory with checkpoint to resume training from or use for testing")
 
-parser.add_argument('--model_name', default='RGB2NIR', choices=['RGB2NIR'])
+parser.add_argument('--model_name', default='CGAN', choices=['CGAN'])
 parser.add_argument('--is_rgb2nir', default=True, help='true for decolorization')
 parser.add_argument("--max_epochs", type=int,default=1000, help="number of training epochs")
 parser.add_argument("--summary_freq", type=int, default=100, help="update summaries every summary_freq steps")
