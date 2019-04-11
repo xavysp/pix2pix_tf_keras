@@ -161,58 +161,59 @@ class run_gan():
         self.val_writer = tf.contrib.summary.create_file_writer(val_log_dir, flush_millis=1000)
         # start training
         plt.figure(figsize=(10,5))
-        with self.train_writer.as_default():
-            self.global_steps = 0
-            for epoch in range(self.epochs):
-                start_time = time.time()
-                iter = 0
+
+        self.global_step = tf.train.get_or_create_global_step()
+        for epoch in range(self.epochs):
+            start_time = time.time()
+            iter = 0
+            with self.train_writer.as_default(),tf.contrib.summary.always_record_summaries():
                 for input_img, target in train_data:
-                    with tf.contrib.summary.record_summaries_every_n_global_steps(100,
-                                                                                 global_step=self.global_steps):
+                    self.global_step.assign_add(1)
+                    with tf.GradientTape() as G_tape, tf.GradientTape() as D_tape:
 
-                        with tf.GradientTape() as G_tape, tf.GradientTape() as D_tape:
+                        g_output = G(inputs=input_img,training=True)
+                        d_real_output = D(inputs=[input_img,target],training=True)
+                        d_gen_output = D(inputs=[input_img,g_output],training=True)
 
-                            g_output = G(inputs=input_img,training=True)
-                            d_real_output = D(inputs=[input_img,target],training=True)
-                            d_gen_output = D(inputs=[input_img,g_output],training=True)
+                        g_loss= G_loss(disc_generated_output=d_gen_output,gen_output=g_output,
+                                                  target=target)
+                        d_loss = D_loss(disc_real_output=d_real_output,
+                                                   disc_generated_output=d_gen_output)
+                    g_grads = G_tape.gradient(g_loss,G.variables)
+                    d_grads = D_tape.gradient(d_loss,D.variables)
 
-                            g_loss= G_loss(disc_generated_output=d_gen_output,gen_output=g_output,
-                                                      target=target)
-                            d_loss = D_loss(disc_real_output=d_real_output,
-                                                       disc_generated_output=d_gen_output)
-                        g_grads = G_tape.gradient(g_loss,G.variables)
-                        d_grads = D_tape.gradient(d_loss,D.variables)
+                    G_optimizer.apply_gradients((zip(g_grads,G.variables)))
+                    D_optimizer.apply_gradients((zip(d_grads,D.variables)))
 
-                        G_optimizer.apply_gradients((zip(g_grads,G.variables)))
-                        D_optimizer.apply_gradients((zip(d_grads,D.variables)))
+                    if iter%self.args.display_freq==0:
+                        #validation and visualization
+                        self.visualize(input_img,target,g_output,d_gen_output)
 
-                        if iter%self.args.display_freq==0:
-                            #validation and visualization
-                            self.visualize(input_img,target,g_output,d_gen_output)
+                    print('Itearacion: {} g_loss {}, d_loss {}'.format(iter,g_loss,d_loss))
+                    iter+=1
+                    # self.global_steps+=1
 
-                        print('Itearacion: {} g_loss {}, d_loss {}'.format(iter,g_loss,d_loss))
-                        iter+=1
-                        self.global_steps+=1
-
-                # validation
-                psnr=[]
-                ssim =[]
-                z =0
+            # validation
+            psnr=[]
+            ssim =[]
+            z =0
+            with self.val_writer.as_default(),tf.contrib.summary.always_record_summaries():
                 for inp, tar in val_data:
                     tmp_psnr,tmp_ssim = self.generate_images(G, inp, tar,k=z)
                     psnr.append(tmp_psnr)
                     ssim.append(tmp_ssim)
                     z+=1
-                print('Val res in Global_step: ',self.global_steps,'psnr:',np.mean(psnr),'ssim:',np.mean(ssim))
-                tf.contrib.summary.scalar('PSNR',np.mean(psnr))
-                tf.contrib.summary.scalar('SSIM',np.mean(ssim))
-                print('Time taken for epoch {} is {} sec '.format(epoch + 1,
-                                                                   time.time() - start_time),
-                      'g_loss {}, d_loss {}'.format(g_loss,d_loss))
-                if epoch % 250 == 0:
+                print('Val res in Global_step: ',self.global_step.numpy(),'psnr:',np.mean(psnr),'ssim:',np.mean(ssim))
 
-                    checkpoint.save(file_prefix=checkpoint_dir)
-                    print('Checkpoint saved successfully')
+                # tf.contrib.summary.scalar('PSNR',np.mean(psnr))
+                tf.contrib.summary.scalar('Validation_SSIM',np.mean(ssim))
+            print('Time taken for epoch {} is {} sec '.format(epoch + 1,
+                                                               time.time() - start_time),
+                  'g_loss {}, d_loss {}'.format(g_loss,d_loss))
+            if epoch % self.args.save_freq == 0:
+
+                checkpoint.save(file_prefix=checkpoint_dir)
+                print('Checkpoint saved successfully')
 
     def test(self):
         def test(self):

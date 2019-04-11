@@ -24,11 +24,11 @@ parser.add_argument("--checkpoint_dir", default='checkpoints', help="directory w
 
 parser.add_argument('--model_name', default='CGAN', choices=['CGAN'])
 parser.add_argument('--is_rgb2nir', default=True, help='true for decolorization')
-parser.add_argument("--max_epochs", type=int,default=1000, help="number of training epochs")
+parser.add_argument("--max_epochs", type=int,default=2000, help="number of training epochs")
 parser.add_argument("--summary_freq", type=int, default=100, help="update summaries every summary_freq steps")
 parser.add_argument("--progress_freq", type=int, default=50, help="display progress every progress_freq steps")
 parser.add_argument("--display_freq", type=int, default=10, help="write current training images every display_freq steps")
-parser.add_argument("--save_freq", type=int, default=250, help="save model every save_freq steps, 0 to disable")
+parser.add_argument("--save_freq", type=int, default=500, help="save model every save_freq steps, 0 to disable")
 
 parser.add_argument("--lab_colorization", action="store_true", help="split input image into brightness (A) and color (B)")
 parser.add_argument("--batch_size", type=int, default=8, help="number of images in batch")
