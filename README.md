@@ -17,5 +17,5 @@ The images used for this task is from EPFL [RGBNIR dataset](https://ivrl.epfl.ch
 * numpy
 
 # Issues
-* Memory ram leak in every interaction, it restarts with new epoch.
+* Memory ram leak in every interation, it restarts with new epoch.
 
