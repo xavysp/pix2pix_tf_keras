@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 import cv2 as cv
 
 import tensorflow as tf
-tf.enable_eager_execution()
+
 
 from model import *
 from utls import data_parser, make_dirs
