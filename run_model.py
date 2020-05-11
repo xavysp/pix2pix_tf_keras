@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 import cv2 as cv
 
 import tensorflow as tf
-tf.enable_eager_execution()
+
 
 from model import *
 from utls import data_parser, make_dirs
@@ -140,8 +140,8 @@ class run_gan():
         D = Discriminator()  # Discriminator initialization
 
         # set and define optimizers
-        G_optimizer = tf.train.AdamOptimizer(learning_rate=self.args.lr, beta1=self.args.beta1)
-        D_optimizer = tf.train.AdamOptimizer(learning_rate=2e-4, beta1=0.5)
+        G_optimizer = tf.keras.optimizers.Adam(learning_rate=self.args.lr, beta_1=self.args.beta1)
+        D_optimizer = tf.keras.optimizers.Adam(learning_rate=2e-4, beta_1=0.5)
         # check previous training
         checkpoint_dir = join(self.args.checkpoint_dir,
                               join(self.args.model_name + '_' + self.args.data4train,
