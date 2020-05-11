@@ -70,10 +70,10 @@ def Generator():
     for up, skip in zip(up_stack, skips):
         x = up(x)
         x = concat([x, skip])
-
+    # below the backward process
     x = last_up(x)
 
-    return tf.keras.Model(inputs=inputs, outputs=x)
+    return tk.Model(inputs=inputs, outputs=x)
 
 # @tf.contrib.eager.defun
 def Discriminator():
