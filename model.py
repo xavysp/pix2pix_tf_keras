@@ -107,7 +107,7 @@ def D_loss(disc_real_output,disc_generated_output):
     generated_loss = loss_object(tf.zeros_like(disc_generated_output), disc_generated_output)
 
     total_disc_loss = real_loss + generated_loss
-    tf.contrib.summary.scalar('G_loss',total_disc_loss)
+    tf.compat.v1.summary.scalar('G_loss',total_disc_loss)
     return total_disc_loss
 
 def G_loss(disc_generated_output, gen_output,target):
@@ -119,5 +119,5 @@ def G_loss(disc_generated_output, gen_output,target):
     l1_loss = tf.reduce_mean(tf.abs(target-gen_output))
 
     total_gen_loss = gan_loss+(lmbda*l1_loss)
-    tf.contrib.summary.scalar('D_loss',total_gen_loss)
+    tf.compat.v1.summary.scalar('D_loss',total_gen_loss)
     return total_gen_loss
